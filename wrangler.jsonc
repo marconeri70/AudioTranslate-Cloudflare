@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "audiotranslate-professional-v6",
+  "name": "audiotranslate-professional",
   "main": "./worker/index.js",
   "compatibility_date": "2026-09-25",
   "compatibility_flags": ["nodejs_compat"],
