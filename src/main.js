@@ -28,7 +28,7 @@ function fmtBytes(n){const u=["B","KB","MB","GB"];if(!n)return"0 B";const i=Math
 function fmtTime(n){n=Math.max(0,Math.round(Number(n)||0));const h=Math.floor(n/3600),m=Math.floor(n%3600/60),s=n%60;return h?`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`:`${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`}
 function srtTime(n){const ms=Math.max(0,Math.round((Number(n)||0)*1000)),h=Math.floor(ms/3600000),m=Math.floor(ms%3600000/60000),s=Math.floor(ms%60000/1000),x=ms%1000;return`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")},${String(x).padStart(3,"0")}`}
 function vttTime(n){return srtTime(n).replace(",",".")}
-function fingerprint(file){return`ATV61:${file.name}:${file.size}:${file.lastModified}`}
+function fingerprint(file){return`ATV62:${file.name}:${file.size}:${file.lastModified}`}
 function updateStart(){E.start.disabled=!selectedFile||!serverReady||running}
 function setProgress(p,title,detail){p=Math.max(0,Math.min(100,Math.round(p||0)));E.pct.textContent=`${p}%`;E.bar.style.width=`${p}%`;if(title)E.title.textContent=title;if(detail)E.detail.textContent=detail}
 function sumDuration(items){return items.reduce((a,x)=>a+Math.max(0,(Number(x.end)||0)-(Number(x.start)||0)),0)}
@@ -86,7 +86,14 @@ function segmentM4A(file,targetSeconds){
     mp4.onError=(e)=>{if(!settled){settled=true;reject(new Error(`Errore MP4Box: ${e}`))}};
 
     mp4.onReady=(info)=>{
-      audioTrack=(info.audioTracks&&info.audioTracks[0])||info.tracks.find(t=>t.audio);
+      audioTrack=null;
+      if(Array.isArray(info?.audioTracks) && info.audioTracks.length){
+        audioTrack=info.audioTracks[0];
+      }else if(Array.isArray(info?.tracks)){
+        for(const track of info.tracks){
+          if(track && (track.type==="audio" || track.audio)){ audioTrack=track; break; }
+        }
+      }
       if(!audioTrack){reject(new Error("Nel file non è stata trovata una traccia audio."));return}
       const totalSamples=Math.max(1,Number(audioTrack.nb_samples)||1);
       const durationUnits=Math.max(1,Number(audioTrack.duration)||1);
@@ -101,8 +108,23 @@ function segmentM4A(file,targetSeconds){
         normalizeAudioSampleEntriesForMSE:true
       });
 
-      const initSegs=mp4.initializeSegmentation("per-track");
-      const init=initSegs.find(x=>x.id===audioTrack.id)||initSegs[0];
+      let initSegs;
+      try{
+        initSegs=mp4.initializeSegmentation("per-track");
+      }catch{
+        initSegs=mp4.initializeSegmentation();
+      }
+
+      let init=null;
+      if(Array.isArray(initSegs)){
+        for(const seg of initSegs){
+          if(seg && Number(seg.id)===Number(audioTrack.id)){ init=seg; break; }
+        }
+        if(!init && initSegs.length) init=initSegs[0];
+      }else if(initSegs && typeof initSegs==="object" && initSegs.buffer){
+        init=initSegs;
+      }
+
       if(!init?.buffer){reject(new Error("Impossibile creare il segmento di inizializzazione M4A."));return}
       initBuffer=init.buffer;
       ready=true;
@@ -142,8 +164,8 @@ function segmentM4A(file,targetSeconds){
   });
 }
 
-function loadResume(){if(!activeFingerprint||!E.autoResume.checked)return null;try{const saved=JSON.parse(localStorage.getItem(activeFingerprint)||"null");if(saved?.version===6.1&&saved?.result)return saved}catch{}return null}
-function saveResume(nextIndex){if(!activeFingerprint||!E.autoResume.checked)return;try{localStorage.setItem(activeFingerprint,JSON.stringify({version:6.1,nextIndex,result,context:E.context.value,filter:E.filter.value,chunkSeconds:Number(E.chunkSeconds.value)}))}catch{}}
+function loadResume(){if(!activeFingerprint||!E.autoResume.checked)return null;try{const saved=JSON.parse(localStorage.getItem(activeFingerprint)||"null");if(saved?.version===6.2&&saved?.result)return saved}catch{}return null}
+function saveResume(nextIndex){if(!activeFingerprint||!E.autoResume.checked)return;try{localStorage.setItem(activeFingerprint,JSON.stringify({version:6.2,nextIndex,result,context:E.context.value,filter:E.filter.value,chunkSeconds:Number(E.chunkSeconds.value)}))}catch{}}
 function clearResume(){if(activeFingerprint)localStorage.removeItem(activeFingerprint)}
 
 async function callChunk(chunk,index,total){
@@ -229,7 +251,7 @@ async function start(){
   try{
     const seconds=Number(E.chunkSeconds.value)||60;
     const duration=await getMediaDuration(selectedFile);
-    setProgress(3,"Preparazione audio","Analisi M4A con MP4Box.js…");
+    setProgress(3,"Preparazione audio","Analisi M4A con MP4Box.js 2.4.1…");
     const chunks=await segmentM4A(selectedFile,seconds);
     const saved=loadResume();
 
@@ -270,5 +292,5 @@ E.downloadEn.onclick=()=>dl(`${base()}-EN.txt`,E.english.value);
 E.downloadIt.onclick=()=>dl(`${base()}-IT.txt`,E.italian.value);
 E.downloadSrt.onclick=()=>{const s=result.englishSegments.map((x,i)=>`${i+1}\n${srtTime(x.start)} --> ${srtTime(x.end)}\n${x.text}\n`).join("\n");dl(`${base()}-EN.srt`,s,"application/x-subrip;charset=utf-8")};
 E.downloadVtt.onclick=()=>{const s="WEBVTT\n\n"+result.englishSegments.map(x=>`${vttTime(x.start)} --> ${vttTime(x.end)}\n${x.text}\n`).join("\n");dl(`${base()}-EN.vtt`,s,"text/vtt;charset=utf-8")};
-E.downloadJson.onclick=()=>dl(`${base()}-AudioTranslate.json`,JSON.stringify({version:6.1,file:selectedFile?.name,context:E.context.value,filter:E.filter.value,...result},null,2),"application/json;charset=utf-8");
+E.downloadJson.onclick=()=>dl(`${base()}-AudioTranslate.json`,JSON.stringify({version:6.2,file:selectedFile?.name,context:E.context.value,filter:E.filter.value,...result},null,2),"application/json;charset=utf-8");
 health();setInterval(health,60000);

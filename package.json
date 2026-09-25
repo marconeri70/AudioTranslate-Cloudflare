@@ -1,6 +1,6 @@
 {
   "name": "audiotranslate-cloudflare-v6",
-  "version": "6.1.0",
+  "version": "6.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,7 +10,7 @@
     "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
-    "mp4box": "^1.4.7"
+    "mp4box": "2.4.1"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.13.14",
