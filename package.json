@@ -1,0 +1,21 @@
+{
+  "name": "audiotranslate-cloudflare-v6",
+  "version": "6.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "npm run build && vite preview",
+    "deploy": "npm run build && wrangler deploy"
+  },
+  "dependencies": {
+    "@ffmpeg/ffmpeg": "0.12.15",
+    "@ffmpeg/util": "0.12.2"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.13.14",
+    "vite": "^7.1.7",
+    "wrangler": "^4.40.2"
+  }
+}
