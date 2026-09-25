@@ -1,5 +1,5 @@
 import { Buffer } from "node:buffer";
-const WHISPER_MODEL="@cf/openai/whisper-large-v3-turbo";const FILTER_MODEL="@cf/meta/llama-3.1-8b-instruct";const TRANSLATE_MODEL="@cf/meta/m2m100-1.2b";const jsonHeaders={"content-type":"application/json; charset=utf-8"};
+const WHISPER_MODEL="@cf/openai/whisper-large-v3-turbo";const FILTER_MODEL="@cf/meta/llama-3.3-70b-instruct-fp8-fast";const TRANSLATE_MODEL="@cf/meta/m2m100-1.2b";const jsonHeaders={"content-type":"application/json; charset=utf-8"};
 function json(data,status=200){return new Response(JSON.stringify(data),{status,headers:jsonHeaders})}
 function secondsFromVttTime(value){const p=value.trim().split(":").map(Number);if(p.length===3)return p[0]*3600+p[1]*60+p[2];if(p.length===2)return p[0]*60+p[1];return Number(value)||0}
 function parseVtt(vtt=""){const lines=vtt.replace(/\r/g,"").split("\n"),out=[];for(let i=0;i<lines.length;i++){const line=lines[i].trim();if(!line.includes("-->"))continue;const[a,b]=line.split("-->").map(x=>x.trim()),text=[];for(let j=i+1;j<lines.length&&lines[j].trim();j++)text.push(lines[j].trim());if(text.length)out.push({start:secondsFromVttTime(a),end:secondsFromVttTime(b),text:text.join(" ")})}return out}
